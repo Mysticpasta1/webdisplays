@@ -83,9 +83,10 @@ dependencies {
 //    implementation fg.deobf("curse.maven:spark-361579:4381167")
     compileOnly fg.deobf("curse.maven:vivecraft-667903:4794431")
 
-    implementation fg.deobf("com.cinemamod:mcef-forge:2.0.1-1.20.1") {
-        transitive = false
-    }
+//    implementation fg.deobf("com.cinemamod:mcef-forge:2.0.1-1.20.1") {
+//        transitive = false
+//    }
+    implementation fg.deobf("flatdir.lib:mcef:2.x")
 }
 
 sourceSets {

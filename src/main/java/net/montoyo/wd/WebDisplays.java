@@ -4,6 +4,8 @@
 
 package net.montoyo.wd;
 
+import com.cinemamod.mcef.MCEF;
+import com.cinemamod.mcef.MCEFBrowser;
 import com.google.gson.Gson;
 import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.Advancement;
@@ -48,10 +50,16 @@ import net.montoyo.wd.init.TabInit;
 import net.montoyo.wd.init.TileInit;
 import net.montoyo.wd.miniserv.server.Server;
 import net.montoyo.wd.net.WDNetworkRegistry;
+import net.montoyo.wd.net.client_bound.S2CMessageEnableSSR;
 import net.montoyo.wd.net.client_bound.S2CMessageServerInfo;
+import net.montoyo.wd.remote.IWDBrowser;
+import net.montoyo.wd.remote.client.RemoteBrowser;
+import net.montoyo.wd.remote.server.BlankBrowser;
+import net.montoyo.wd.remote.server.ServerBrowser;
 import net.montoyo.wd.utilities.DistSafety;
 import net.montoyo.wd.utilities.Log;
 import net.montoyo.wd.utilities.Util;
+import org.cef.browser.CefBrowser;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -65,7 +73,7 @@ public class WebDisplays {
     public static WebDisplays INSTANCE;
 
     public static SharedProxy PROXY = null;
-    
+
     public static final ResourceLocation ADV_PAD_BREAK = new ResourceLocation("webdisplays", "webdisplays/pad_break");
     public static final String BLACKLIST_URL = "mod://webdisplays/blacklisted.html";
     public static final Gson GSON = new Gson();
@@ -96,29 +104,32 @@ public class WebDisplays {
     public long miniservQuota;
     public float ytVolume;
     public float avDist100;
+
     public float avDist0;
-    
     // mod detection
     private boolean hasOC;
+
     private boolean hasCC;
+
+    private static boolean SSR = false;
 
     public WebDisplays() {
         INSTANCE = this;
-        if(FMLEnvironment.dist.isClient()) {
+        if (FMLEnvironment.dist.isClient()) {
             PROXY = DistSafety.createProxy();
         } else {
             PROXY = new SharedProxy();
         }
-    
+
         if (FMLEnvironment.dist.isClient()) {
             // proxies are annoying, so from now on, I'mma be just registering stuff in here
             FMLJavaModLoadingContext.get().getModEventBus().addListener(ClientProxy::onKeybindRegistry);
             MinecraftForge.EVENT_BUS.addListener(ClientProxy::onDrawSelection);
             ClientConfig.init();
         }
-        
+
         CommonConfig.init();
-        
+
         //Criterions
         criterionPadBreak = new Criterion("pad_break");
         criterionUpgradeScreen = new Criterion("upgrade_screen");
@@ -134,9 +145,9 @@ public class WebDisplays {
         BlockInit.init(bus);
         ItemInit.init(bus);
         TileInit.init(bus);
-        
+
         PROXY.preInit();
-        
+
         MinecraftForge.EVENT_BUS.register(this);
 
         //Other things
@@ -155,7 +166,7 @@ public class WebDisplays {
                 t.printStackTrace();
             }
         } */
-        
+
         if (!FMLEnvironment.production) {
             ScreenControlRegistry.init();
         }
@@ -210,7 +221,7 @@ public class WebDisplays {
             if (miniservPort != 0) {
                 Server sv = Server.getInstance();
 
-                if(!serverStartedDimensions.contains(level.dimension())) {
+                if (!serverStartedDimensions.contains(level.dimension())) {
                     sv.setPort(miniservPort);
                     sv.setDirectory(new File(worldDir, "wd_filehost"));
                     sv.start();
@@ -222,7 +233,7 @@ public class WebDisplays {
 
     @SubscribeEvent
     public void onWorldLeave(LevelEvent.Unload ev) throws IOException {
-        if(ev.getLevel() instanceof Level level) {
+        if (ev.getLevel() instanceof Level level) {
             if (ev.getLevel().isClientSide() || level.dimension() != Level.OVERWORLD)
                 return;
             Server sw = Server.getInstance();
@@ -233,7 +244,7 @@ public class WebDisplays {
 
     @SubscribeEvent
     public void onWorldSave(LevelEvent.Save ev) {
-        if(ev.getLevel() instanceof Level level) {
+        if (ev.getLevel() instanceof Level level) {
             if (ev.getLevel().isClientSide() || level.dimension() != Level.OVERWORLD)
                 return;
             File f = new File(Objects.requireNonNull(ev.getLevel().getServer()).getServerDirectory(), "wd_next.txt");
@@ -250,13 +261,13 @@ public class WebDisplays {
 
     @SubscribeEvent
     public void onToss(ItemTossEvent ev) {
-        if(!ev.getEntity().level().isClientSide) {
+        if (!ev.getEntity().level().isClientSide) {
             ItemStack is = ev.getEntity().getItem();
 
-            if(is.getItem() == ItemInit.MINEPAD.get()) {
+            if (is.getItem() == ItemInit.MINEPAD.get()) {
                 CompoundTag tag = is.getTag();
 
-                if(tag == null) {
+                if (tag == null) {
                     tag = new CompoundTag();
                     is.setTag(tag);
                 }
@@ -271,11 +282,11 @@ public class WebDisplays {
 
     @SubscribeEvent
     public void onPlayerCraft(PlayerEvent.ItemCraftedEvent ev) {
-        if(CommonConfig.hardRecipes && ItemInit.isCompCraftItem(ev.getCrafting().getItem()) && (CraftComponent.EXTCARD.makeItemStack().is(ev.getCrafting().getItem()))) {
-            if((ev.getEntity() instanceof ServerPlayer && !hasPlayerAdvancement((ServerPlayer) ev.getEntity(), ADV_PAD_BREAK)) || PROXY.hasClientPlayerAdvancement(ADV_PAD_BREAK) != HasAdvancement.YES) {
+        if (CommonConfig.hardRecipes && ItemInit.isCompCraftItem(ev.getCrafting().getItem()) && (CraftComponent.EXTCARD.makeItemStack().is(ev.getCrafting().getItem()))) {
+            if ((ev.getEntity() instanceof ServerPlayer && !hasPlayerAdvancement((ServerPlayer) ev.getEntity(), ADV_PAD_BREAK)) || PROXY.hasClientPlayerAdvancement(ADV_PAD_BREAK) != HasAdvancement.YES) {
                 ev.getCrafting().setDamageValue(CraftComponent.BADEXTCARD.ordinal());
 
-                if(!ev.getEntity().level().isClientSide)
+                if (!ev.getEntity().level().isClientSide)
                     ev.getEntity().level().playSound(null, ev.getEntity().getX(), ev.getEntity().getY(), ev.getEntity().getZ(), SoundEvents.ITEM_BREAK, SoundSource.MASTER, 1.0f, 1.0f);
             }
         }
@@ -288,10 +299,10 @@ public class WebDisplays {
 
     @SubscribeEvent
     public void onLogIn(PlayerEvent.PlayerLoggedInEvent ev) {
-        if(!ev.getEntity().level().isClientSide && ev.getEntity() instanceof ServerPlayer) {
+        if (!ev.getEntity().level().isClientSide && ev.getEntity() instanceof ServerPlayer) {
             IWDDCapability cap = ev.getEntity().getCapability(WDDCapability.Provider.cap, null).orElseThrow(RuntimeException::new);
 
-            if(cap.isFirstRun()) {
+            if (cap.isFirstRun()) {
                 Util.toast(ev.getEntity(), ChatFormatting.LIGHT_PURPLE, "welcome1");
                 Util.toast(ev.getEntity(), ChatFormatting.LIGHT_PURPLE, "welcome2");
                 Util.toast(ev.getEntity(), ChatFormatting.LIGHT_PURPLE, "welcome3");
@@ -311,27 +322,27 @@ public class WebDisplays {
 
     @SubscribeEvent
     public void onLogOut(PlayerEvent.PlayerLoggedOutEvent ev) {
-        if(!ev.getEntity().level().isClientSide)
+        if (!ev.getEntity().level().isClientSide)
             Server.getInstance().getClientManager().revokeClientKey(ev.getEntity().getGameProfile().getId());
     }
 
     @SubscribeEvent
     public void attachEntityCaps(AttachCapabilitiesEvent<Entity> ev) {
-        if(ev.getObject() instanceof Player)
+        if (ev.getObject() instanceof Player)
             ev.addCapability(CAPABILITY, new WDDCapability.Provider());
     }
 
     @SubscribeEvent
     public void onPlayerClone(PlayerEvent.Clone ev) {
-        IWDDCapability src =  ev.getOriginal().getCapability(WDDCapability.Provider.cap, null).orElse(new WDDCapability.Factory().call());
-        IWDDCapability dst =  ev.getEntity().getCapability(WDDCapability.Provider.cap, null).orElse(new WDDCapability.Factory().call());
+        IWDDCapability src = ev.getOriginal().getCapability(WDDCapability.Provider.cap, null).orElse(new WDDCapability.Factory().call());
+        IWDDCapability dst = ev.getEntity().getCapability(WDDCapability.Provider.cap, null).orElse(new WDDCapability.Factory().call());
 
-        if(src == null) {
+        if (src == null) {
             Log.error("src is null");
             return;
         }
 
-        if(dst == null) {
+        if (dst == null) {
             Log.error("dst is null");
             return;
         }
@@ -343,14 +354,14 @@ public class WebDisplays {
     public void onServerChat(ServerChatEvent ev) {
         String msg = ev.getMessage().getString().replaceAll("\\s+", " ").toLowerCase();
         StringBuilder sb = new StringBuilder(msg.length());
-        for(int i = 0; i < msg.length(); i++) {
+        for (int i = 0; i < msg.length(); i++) {
             char chr = msg.charAt(i);
 
-            if(chr != '.' && chr != ',' && chr != ';' && chr != '!' && chr != '?' && chr != ':' && chr != '\'' && chr != '\"' && chr != '`')
+            if (chr != '.' && chr != ',' && chr != ';' && chr != '!' && chr != '?' && chr != ':' && chr != '\'' && chr != '\"' && chr != '`')
                 sb.append(chr);
         }
 
-        if(sb.toString().equals("ironic he could save others from death but not himself")) {
+        if (sb.toString().equals("ironic he could save others from death but not himself")) {
             Player ply = ev.getPlayer();
             ply.level().playSound(null, ply.getX(), ply.getY(), ply.getZ(), soundIronic, SoundSource.PLAYERS, 1.0f, 1.0f);
         }
@@ -358,13 +369,13 @@ public class WebDisplays {
 
     @SubscribeEvent
     public void onClientChat(ClientChatEvent ev) {
-        if(ev.getMessage().equals("!WD render recipes"))
+        if (ev.getMessage().equals("!WD render recipes"))
             PROXY.renderRecipes();
     }
 
     private boolean hasPlayerAdvancement(ServerPlayer ply, ResourceLocation rl) {
         MinecraftServer server = PROXY.getServer();
-        if(server == null)
+        if (server == null)
             return false;
 
         Advancement adv = server.getAdvancements().getAdvancement(rl);
@@ -385,18 +396,18 @@ public class WebDisplays {
         return ret;
     }
 
-    private static void registerTrigger(Criterion ... criteria) {
-        for(Criterion c: criteria)
+    private static void registerTrigger(Criterion... criteria) {
+        for (Criterion c : criteria)
             CriteriaTriggers.register(c);
     }
 
-   // public static boolean isOpenComputersAvailable() {
-   //     return INSTANCE.hasOC;
-  //  }
+    // public static boolean isOpenComputersAvailable() {
+    //     return INSTANCE.hasOC;
+    //  }
 
-  //  public static boolean isComputerCraftAvailable() {
-  //      return INSTANCE.hasCC;
-  //  }
+    //  public static boolean isComputerCraftAvailable() {
+    //      return INSTANCE.hasCC;
+    //  }
 
     public static boolean isSiteBlacklisted(String url) {
         try {
@@ -404,7 +415,7 @@ public class WebDisplays {
             for (String str : CommonConfig.Browser.blacklist)
                 if (str.equalsIgnoreCase(url2.getHost())) return true;
             return false;
-        } catch(MalformedURLException ex) {
+        } catch (MalformedURLException ex) {
             return false;
         }
     }
@@ -412,5 +423,20 @@ public class WebDisplays {
     public static String applyBlacklist(String url) {
         return isSiteBlacklisted(url) ? BLACKLIST_URL : url;
     }
-}
 
+    public static boolean isSSR() {
+        return SSR;
+    }
+
+    public static void markSSR() {
+        StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+        StackTraceElement caller = elements[3];
+        try {
+            Class<?> c = Class.forName(caller.getClassName());
+            if (c == S2CMessageEnableSSR.class || c == WebDisplays.class) {
+                SSR = true;
+            }
+        } catch (Throwable err) {
+        }
+    }
+}

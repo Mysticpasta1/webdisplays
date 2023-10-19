@@ -12,6 +12,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.montoyo.wd.entity.TileEntityScreen;
+import net.montoyo.wd.remote.IWDBrowser;
 import net.montoyo.wd.utilities.Vector3f;
 import net.montoyo.wd.utilities.Vector3i;
 import org.jetbrains.annotations.NotNull;
@@ -47,7 +48,7 @@ public class ScreenRenderer implements BlockEntityRenderer<TileEntityScreen> {
 		for (int i = 0; i < te.screenCount(); i++) {
 			TileEntityScreen.Screen scr = te.getScreen(i);
 			if (scr.browser == null) {
-				scr.createBrowser(true);
+				scr.createBrowser(false, true);
 			}
 			
 			// TODO: manually backface cull the screens
@@ -120,7 +121,7 @@ public class ScreenRenderer implements BlockEntityRenderer<TileEntityScreen> {
 			//TODO: don't use tesselator
 			RenderSystem.enableDepthTest();
 			RenderSystem.setShader(GameRenderer::getPositionTexColorShader);
-			RenderSystem._setShaderTexture(0, ((MCEFBrowser) scr.browser).getRenderer().getTextureID());
+			RenderSystem._setShaderTexture(0, ((IWDBrowser) scr.browser).getRenderer().getTextureID());
 			RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
 			builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
 			builder.vertex(poseStack.last().pose(), -sw, -sh, 0.505f).uv(0.f, 1.f).color(1.f, 1.f, 1.f, 1.f).endVertex();
