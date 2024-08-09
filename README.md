@@ -8,7 +8,8 @@ Discussion: https://discord.gg/rNrh5kW8Ty
 ## Install
 Download WebDisplays from either:
 - CurseForge: https://legacy.curseforge.com/minecraft/mc-mods/webdisplays
-- Modrinth: TODO
+- Modrinth:
+https://modrinth.com/mod/webdisplays
 
 **WebDisplays Requires MCEF!** You must install MCEF in order for WebDisplays to work.
 
