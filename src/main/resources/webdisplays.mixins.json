@@ -8,7 +8,9 @@
   ],
   "client": [
     "MouseHandlerMixin",
-    "OverlayMixin"
+    "OverlayMixin",
+    "audio.AudioChannelMixin",
+    "audio.AudioStreamMixin"
   ],
   "injectors": {
     "defaultRequire": 1

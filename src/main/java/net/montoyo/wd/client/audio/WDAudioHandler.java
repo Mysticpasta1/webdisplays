@@ -54,7 +54,7 @@ public class WDAudioHandler implements CefAudioHandler {
 	// the size of the |data| array in bytes.
 	//
 	@Override
-	public void onAudioStreamPacket(CefBrowser cefBrowser, long pointer, int frames, long pts) {
+	public void onAudioStreamPacket(CefBrowser cefBrowser, DataPointer pointer, int frames, long pts) {
 		ClientProxy proxy = ((ClientProxy) WebDisplays.PROXY);
 		
 		for (ScreenBlockEntity tes : proxy.getScreens()) {
