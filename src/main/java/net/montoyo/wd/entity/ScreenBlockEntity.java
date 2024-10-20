@@ -28,6 +28,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.montoyo.wd.WebDisplays;
 import net.montoyo.wd.block.ScreenBlock;
 import net.montoyo.wd.client.ClientProxy;
+import net.montoyo.wd.client.audio.WDAudioSource;
 import net.montoyo.wd.config.CommonConfig;
 import net.montoyo.wd.controls.builtin.ClickControl;
 import net.montoyo.wd.core.DefaultUpgrade;
@@ -1142,6 +1143,15 @@ public class ScreenBlockEntity extends BlockEntity {
         }
 
         return bhr;
+    }
+    
+    public WDAudioSource getSoundSource(CefBrowser cefBrowser) {
+        for (ScreenData screen : screens) {
+            if (screen.browser == cefBrowser) {
+                return screen.audioSource;
+            }
+        }
+        return null;
     }
 
 //    @Override

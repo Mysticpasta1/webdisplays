@@ -3,6 +3,7 @@ package net.montoyo.wd.entity;
 import com.cinemamod.mcef.MCEF;
 import com.cinemamod.mcef.MCEFBrowser;
 import com.cinemamod.mcef.listeners.MCEFCursorChangeListener;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -13,6 +14,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.montoyo.wd.WebDisplays;
 import net.montoyo.wd.client.ClientProxy;
+import net.montoyo.wd.client.audio.WDAudioSource;
 import net.montoyo.wd.config.CommonConfig;
 import net.montoyo.wd.core.ScreenRights;
 import net.montoyo.wd.utilities.*;
@@ -33,6 +35,7 @@ public class ScreenData {
     public Vector2i resolution;
     public Rotation rotation = Rotation.ROT_0;
     public String url;
+    public WDAudioSource audioSource;
     protected VideoType videoType;
     public NameUUIDPair owner;
     public ArrayList<NameUUIDPair> friends;
@@ -206,6 +209,12 @@ public class ScreenData {
 
             doTurnOnAnim = doAnim;
             turnOnTime = System.currentTimeMillis();
+			
+            audioSource = new WDAudioSource(
+                    be,
+                    this
+            );
+            Minecraft.getInstance().getSoundManager().play(audioSource);
         }
     }
 }

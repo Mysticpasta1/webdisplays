@@ -80,6 +80,7 @@ repositories{
         url = "https://www.cursemaven.com"
     }
     maven { url 'https://mcef-download.cinemamod.com/repositories/releases/' }
+    flatDir name: 'libs', dirs: 'libs'
 }
 
 dependencies {
@@ -91,7 +92,7 @@ dependencies {
     // here because we need to manually open the VR keyboard
     compileOnly fg.deobf("curse.maven:vivecraft-667903:4794431")
 
-    implementation fg.deobf("com.cinemamod:mcef-forge:2.1.1-1.20.1") {
+    implementation fg.deobf("com.cinemamod:mcef-forge:2.1.5-1.20.1") {
         transitive = false
     }
 }

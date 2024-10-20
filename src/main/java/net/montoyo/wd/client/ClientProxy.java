@@ -61,6 +61,7 @@ import net.minecraftforge.network.NetworkEvent;
 import net.montoyo.wd.SharedProxy;
 import net.montoyo.wd.WebDisplays;
 import net.montoyo.wd.block.ScreenBlock;
+import net.montoyo.wd.client.audio.WDAudioHandler;
 import net.montoyo.wd.client.gui.*;
 import net.montoyo.wd.client.gui.loading.GuiLoader;
 import net.montoyo.wd.client.renderers.*;
@@ -286,6 +287,7 @@ public class ClientProxy extends SharedProxy implements ResourceManagerReloadLis
 				}
 		);
 
+		MCEF.getClient().addAudioHandler(WDAudioHandler.INSTANCE);
 		MCEF.getClient().addDisplayHandler(DisplayHandler.INSTANCE);
 		MCEF.getClient().getHandle().addMessageRouter(CefMessageRouter.create(WDRouter.INSTANCE));
 
