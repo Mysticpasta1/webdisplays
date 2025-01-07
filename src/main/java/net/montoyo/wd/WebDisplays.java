@@ -10,7 +10,6 @@ import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -20,23 +19,17 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.client.event.ClientChatEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.ServerChatEvent;
-import net.minecraftforge.event.entity.item.ItemTossEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.event.server.ServerStoppingEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.neoforge.client.event.ClientChatEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.ServerChatEvent;
+import net.neoforged.neoforge.event.entity.item.ItemTossEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import net.montoyo.wd.client.ClientProxy;
 import net.montoyo.wd.client.gui.camera.KeyboardCamera;
 import net.montoyo.wd.config.ClientConfig;
@@ -53,13 +46,18 @@ import net.montoyo.wd.registry.WDTabs;
 import net.montoyo.wd.utilities.DistSafety;
 import net.montoyo.wd.utilities.Log;
 import net.montoyo.wd.utilities.serialization.Util;
-
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLEnvironment;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
+import net.minecraft.resources.ResourceLocation;
 
 @Mod("webdisplays")
 public class WebDisplays {
@@ -113,10 +111,10 @@ public class WebDisplays {
     
         if (FMLEnvironment.dist.isClient()) {
             // proxies are annoying, so from now on, I'mma be just registering stuff in here
-            FMLJavaModLoadingContext.get().getModEventBus().addListener(ClientProxy::onKeybindRegistry);
-            MinecraftForge.EVENT_BUS.addListener(ClientProxy::onDrawSelection);
-            MinecraftForge.EVENT_BUS.addListener(KeyboardCamera::updateCamera);
-            MinecraftForge.EVENT_BUS.addListener(KeyboardCamera::gameTick);
+            ModLoadingContext.get().getActiveContainer().getEventBus().addListener(ClientProxy::onKeybindRegistry);
+            NeoForge.EVENT_BUS.addListener(ClientProxy::onDrawSelection);
+            NeoForge.EVENT_BUS.addListener(KeyboardCamera::updateCamera);
+            NeoForge.EVENT_BUS.addListener(KeyboardCamera::gameTick);
             ClientConfig.init();
         }
         
@@ -129,8 +127,9 @@ public class WebDisplays {
         criterionKeyboardCat = new Criterion("keyboard_cat");
         registerTrigger(criterionPadBreak, criterionUpgradeScreen, criterionLinkPeripheral, criterionKeyboardCat);
 
-        IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+        IEventBus bus = ModLoadingContext.get().getActiveContainer().getEventBus();
         WDNetworkRegistry.init();
+        assert bus != null;
         SOUNDS.register(bus);
         onRegisterSounds();
         WDTabs.init(bus);
@@ -139,8 +138,8 @@ public class WebDisplays {
         TileRegistry.init(bus);
         
         PROXY.preInit();
-        
-        MinecraftForge.EVENT_BUS.register(this);
+
+        NeoForge.EVENT_BUS.register(this);
 
         //Other things
         PROXY.init();
@@ -188,7 +187,7 @@ public class WebDisplays {
             if (ev.getLevel().isClientSide() || level.dimension() != Level.OVERWORLD)
                 return;
 
-            File worldDir = Objects.requireNonNull(ev.getLevel().getServer()).getServerDirectory();
+            File worldDir = Objects.requireNonNull(ev.getLevel().getServer()).getServerDirectory().toFile();
             File f = new File(worldDir, "wd_next.txt");
 
             if (f.exists()) {
@@ -239,7 +238,7 @@ public class WebDisplays {
         if(ev.getLevel() instanceof Level level) {
             if (ev.getLevel().isClientSide() || level.dimension() != Level.OVERWORLD)
                 return;
-            File f = new File(Objects.requireNonNull(ev.getLevel().getServer()).getServerDirectory(), "wd_next.txt");
+            File f = new File(String.valueOf(Objects.requireNonNull(ev.getLevel().getServer()).getServerDirectory()), "wd_next.txt");
 
             try {
                 BufferedWriter bw = new BufferedWriter(new FileWriter(f));
@@ -374,7 +373,7 @@ public class WebDisplays {
         if(server == null)
             return false;
 
-        Advancement adv = server.getAdvancements().getAdvancement(rl);
+        Advancement adv = server.getAdvancements().getAdvancemen(rl);
         return adv != null && ply.getAdvancements().getOrStartProgress(adv).isDone();
     }
 
@@ -382,7 +381,7 @@ public class WebDisplays {
         return new WebDisplays().lastPadId++;
     }
 
-    public static DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, "webdisplays");
+    public static DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(NeoForgeRegistries.SOUND_EVENTS, "webdisplays");
 
     private static SoundEvent registerSound(String resName) {
         ResourceLocation resLoc = new ResourceLocation("webdisplays", resName);

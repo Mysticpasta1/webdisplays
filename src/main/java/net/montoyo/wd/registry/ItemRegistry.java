@@ -2,14 +2,14 @@ package net.montoyo.wd.registry;
 
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
 import net.montoyo.wd.block.item.KeyboardItem;
 import net.montoyo.wd.core.CraftComponent;
 import net.montoyo.wd.core.DefaultUpgrade;
 import net.montoyo.wd.item.*;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.Locale;
 
@@ -19,16 +19,16 @@ public class ItemRegistry {
         ITEMS.register(bus);
     }
 
-    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, "webdisplays");
+    public static final DeferredRegister<Item> ITEMS = DeferredRegister.createItems("webdisplays");
 
-    protected static final RegistryObject<Item>[] COMP_CRAFT_ITEMS = new RegistryObject[CraftComponent.values().length];
-    protected static final RegistryObject<Item>[] UPGRADE_ITEMS = new RegistryObject[DefaultUpgrade.values().length];
+    protected static final DeferredItem<Item>[] COMP_CRAFT_ITEMS = new DeferredItem[CraftComponent.values().length];
+    protected static final DeferredItem<Item>[] UPGRADE_ITEMS = new DeferredItem[DefaultUpgrade.values().length];
 
-    public static final RegistryObject<Item> CONFIGURATOR = ITEMS.register("screencfg", () -> new ItemScreenConfigurator(new Item.Properties()));
-    public static final RegistryObject<Item> OWNERSHIP_THEIF = ITEMS.register("ownerthief", () -> new ItemOwnershipThief(new Item.Properties()));
-    public static final RegistryObject<Item> LINKER = ITEMS.register("linker", () -> new ItemLinker(new Item.Properties()));
-    public static final RegistryObject<Item> MINEPAD = ITEMS.register("minepad", () -> new ItemMinePad2(new Item.Properties()));
-    public static final RegistryObject<Item> LASER_POINTER = ITEMS.register("laserpointer", () -> new ItemLaserPointer(new Item.Properties()));
+    public static final DeferredHolder<Item, ItemScreenConfigurator> CONFIGURATOR = ITEMS.register("screencfg", () -> new ItemScreenConfigurator(new Item.Properties()));
+    public static final DeferredHolder<Item, ItemOwnershipThief> OWNERSHIP_THEIF = ITEMS.register("ownerthief", () -> new ItemOwnershipThief(new Item.Properties()));
+    public static final DeferredHolder<Item, ItemLinker> LINKER = ITEMS.register("linker", () -> new ItemLinker(new Item.Properties()));
+    public static final DeferredHolder<Item, ItemMinePad2> MINEPAD = ITEMS.register("minepad", () -> new ItemMinePad2(new Item.Properties()));
+    public static final DeferredHolder<Item, ItemLaserPointer> LASER_POINTER = ITEMS.register("laserpointer", () -> new ItemLaserPointer(new Item.Properties()));
 
     static {
         DefaultUpgrade[] defaultUpgrades = DefaultUpgrade.values();
@@ -44,18 +44,18 @@ public class ItemRegistry {
         }
     }
 
-    public static final RegistryObject<Item> SCREEN = ITEMS.register("screen", () -> new BlockItem(BlockRegistry.SCREEN_BLOCk.get(), new Item.Properties()/*.tab(WebDisplays.CREATIVE_TAB)*/));
+    public static final DeferredItem<Item> SCREEN = ITEMS.register("screen", () -> new BlockItem(BlockRegistry.SCREEN_BLOCk.get(), new Item.Properties()/*.tab(WebDisplays.CREATIVE_TAB)*/));
 
-    public static final RegistryObject<Item> KEYBOARD = ITEMS.register("keyboard", () -> new KeyboardItem(BlockRegistry.KEYBOARD_BLOCK.get(), new Item.Properties()/*.tab(WebDisplays.CREATIVE_TAB)*/));
-    public static final RegistryObject<Item> REDSTONE_CONTROLLER = ITEMS.register("redctrl", () -> new BlockItem(BlockRegistry.REDSTONE_CONTROL_BLOCK.get(), new Item.Properties()/*.tab(WebDisplays.CREATIVE_TAB)*/));
-    public static final RegistryObject<Item> REMOTE_CONTROLLER = ITEMS.register("rctrl", () -> new BlockItem(BlockRegistry.REMOTE_CONTROLLER_BLOCK.get(), new Item.Properties()/*.tab(WebDisplays.CREATIVE_TAB)*/));
-    public static final RegistryObject<Item> SERVER = ITEMS.register("server", () -> new BlockItem(BlockRegistry.SERVER_BLOCK.get(), new Item.Properties()/*.tab(WebDisplays.CREATIVE_TAB)*/));
+    public static final DeferredItem<Item> KEYBOARD = ITEMS.register("keyboard", () -> new KeyboardItem(BlockRegistry.KEYBOARD_BLOCK.get(), new Item.Properties()/*.tab(WebDisplays.CREATIVE_TAB)*/));
+    public static final DeferredItem<Item> REDSTONE_CONTROLLER = ITEMS.register("redctrl", () -> new BlockItem(BlockRegistry.REDSTONE_CONTROL_BLOCK.get(), new Item.Properties()/*.tab(WebDisplays.CREATIVE_TAB)*/));
+    public static final DeferredItem<Item> REMOTE_CONTROLLER = ITEMS.register("rctrl", () -> new BlockItem(BlockRegistry.REMOTE_CONTROLLER_BLOCK.get(), new Item.Properties()/*.tab(WebDisplays.CREATIVE_TAB)*/));
+    public static final DeferredItem<Item> SERVER = ITEMS.register("server", () -> new BlockItem(BlockRegistry.SERVER_BLOCK.get(), new Item.Properties()/*.tab(WebDisplays.CREATIVE_TAB)*/));
 
-    public static RegistryObject<Item> getComputerCraftItem(int index) {
+    public static DeferredItem<Item> getComputerCraftItem(int index) {
         return COMP_CRAFT_ITEMS[index];
     }
 
-    public static RegistryObject<Item> getUpgradeItem(int index) {
+    public static DeferredItem<Item> getUpgradeItem(int index) {
         return UPGRADE_ITEMS[index];
     }
 
@@ -68,7 +68,7 @@ public class ItemRegistry {
     }
 
     public static boolean isCompCraftItem(Item item) {
-        for (RegistryObject<Item> itemRegistryObject : COMP_CRAFT_ITEMS)
+        for (DeferredItem<Item> itemRegistryObject : COMP_CRAFT_ITEMS)
             if (item == itemRegistryObject.get())
                 return true;
         return false;
