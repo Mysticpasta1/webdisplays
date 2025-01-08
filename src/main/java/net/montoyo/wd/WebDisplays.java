@@ -6,11 +6,11 @@ package net.montoyo.wd;
 
 import com.google.gson.Gson;
 import net.minecraft.ChatFormatting;
-import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -20,23 +20,16 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.client.event.ClientChatEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.ServerChatEvent;
-import net.minecraftforge.event.entity.item.ItemTossEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.event.server.ServerStoppingEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.neoforge.client.event.ClientChatEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.ServerChatEvent;
+import net.neoforged.neoforge.event.entity.item.ItemTossEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.level.LevelEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.registries.DeferredRegister;
 import net.montoyo.wd.client.ClientProxy;
 import net.montoyo.wd.client.gui.camera.KeyboardCamera;
 import net.montoyo.wd.config.ClientConfig;
@@ -53,24 +46,29 @@ import net.montoyo.wd.registry.WDTabs;
 import net.montoyo.wd.utilities.DistSafety;
 import net.montoyo.wd.utilities.Log;
 import net.montoyo.wd.utilities.serialization.Util;
-
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLEnvironment;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
+import net.minecraft.resources.ResourceLocation;
 
 @Mod("webdisplays")
 public class WebDisplays {
     public static WebDisplays INSTANCE;
 
     public static SharedProxy PROXY = null;
-    
-    public static final ResourceLocation ADV_PAD_BREAK = new ResourceLocation("webdisplays", "webdisplays/pad_break");
+
+    public static final ResourceLocation ADV_PAD_BREAK = ResourceLocation.fromNamespaceAndPath("webdisplays", "webdisplays/pad_break");
     public static final String BLACKLIST_URL = "mod://webdisplays/blacklisted.html";
     public static final Gson GSON = new Gson();
-    public static final ResourceLocation CAPABILITY = new ResourceLocation("webdisplays", "customdatacap");
+    public static final ResourceLocation CAPABILITY = ResourceLocation.fromNamespaceAndPath("webdisplays", "customdatacap");
 
     //Sounds
     public SoundEvent soundTyping;
@@ -98,7 +96,7 @@ public class WebDisplays {
     public float ytVolume;
     public float avDist100;
     public float avDist0;
-    
+
     // mod detection
     private boolean hasOC;
     private boolean hasCC;
@@ -110,18 +108,18 @@ public class WebDisplays {
         } else {
             PROXY = new SharedProxy();
         }
-    
+
         if (FMLEnvironment.dist.isClient()) {
             // proxies are annoying, so from now on, I'mma be just registering stuff in here
-            FMLJavaModLoadingContext.get().getModEventBus().addListener(ClientProxy::onKeybindRegistry);
-            MinecraftForge.EVENT_BUS.addListener(ClientProxy::onDrawSelection);
-            MinecraftForge.EVENT_BUS.addListener(KeyboardCamera::updateCamera);
-            MinecraftForge.EVENT_BUS.addListener(KeyboardCamera::gameTick);
+            Objects.requireNonNull(ModLoadingContext.get().getActiveContainer().getEventBus()).addListener(ClientProxy::onKeybindRegistry);
+            NeoForge.EVENT_BUS.addListener(ClientProxy::onDrawSelection);
+            NeoForge.EVENT_BUS.addListener(KeyboardCamera::updateCamera);
+            NeoForge.EVENT_BUS.addListener(KeyboardCamera::gameTick);
             ClientConfig.init();
         }
-        
+
         CommonConfig.init();
-        
+
         //Criterions
         criterionPadBreak = new Criterion("pad_break");
         criterionUpgradeScreen = new Criterion("upgrade_screen");
@@ -129,18 +127,19 @@ public class WebDisplays {
         criterionKeyboardCat = new Criterion("keyboard_cat");
         registerTrigger(criterionPadBreak, criterionUpgradeScreen, criterionLinkPeripheral, criterionKeyboardCat);
 
-        IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+        IEventBus bus = ModLoadingContext.get().getActiveContainer().getEventBus();
         WDNetworkRegistry.init();
+        assert bus != null;
         SOUNDS.register(bus);
         onRegisterSounds();
         WDTabs.init(bus);
         BlockRegistry.init(bus);
         ItemRegistry.init(bus);
         TileRegistry.init(bus);
-        
+
         PROXY.preInit();
-        
-        MinecraftForge.EVENT_BUS.register(this);
+
+        NeoForge.EVENT_BUS.register(this);
 
         //Other things
         PROXY.init();
@@ -158,7 +157,7 @@ public class WebDisplays {
                 t.printStackTrace();
             }
         } */
-        
+
         if (!FMLEnvironment.production) {
             ScreenControlRegistry.init();
         }
@@ -167,7 +166,7 @@ public class WebDisplays {
     @SubscribeEvent
     public static void onAttachPlayerCap(AttachCapabilitiesEvent<Entity> event) {
         if (event.getObject() instanceof Player && !event.getObject().getCapability(WDDCapability.Provider.cap).isPresent()) {
-            event.addCapability(new ResourceLocation("webdisplays", "wddcapability"), new WDDCapability.Provider());
+            event.addCapability(ResourceLocation.fromNamespaceAndPath("webdisplays", "wddcapability"), new WDDCapability.Provider());
         }
     }
 
@@ -188,7 +187,7 @@ public class WebDisplays {
             if (ev.getLevel().isClientSide() || level.dimension() != Level.OVERWORLD)
                 return;
 
-            File worldDir = Objects.requireNonNull(ev.getLevel().getServer()).getServerDirectory();
+            File worldDir = Objects.requireNonNull(ev.getLevel().getServer()).getServerDirectory().toFile();
             File f = new File(worldDir, "wd_next.txt");
 
             if (f.exists()) {
@@ -239,7 +238,7 @@ public class WebDisplays {
         if(ev.getLevel() instanceof Level level) {
             if (ev.getLevel().isClientSide() || level.dimension() != Level.OVERWORLD)
                 return;
-            File f = new File(Objects.requireNonNull(ev.getLevel().getServer()).getServerDirectory(), "wd_next.txt");
+            File f = new File(String.valueOf(Objects.requireNonNull(ev.getLevel().getServer()).getServerDirectory()), "wd_next.txt");
 
             try {
                 BufferedWriter bw = new BufferedWriter(new FileWriter(f));
@@ -374,27 +373,29 @@ public class WebDisplays {
         if(server == null)
             return false;
 
-        Advancement adv = server.getAdvancements().getAdvancement(rl);
-        return adv != null && ply.getAdvancements().getOrStartProgress(adv).isDone();
+        AdvancementHolder advHolder = server.getAdvancements().get(rl);
+        return advHolder != null && ply.getAdvancements().getOrStartProgress(advHolder).isDone();
     }
 
     public static int getNextAvailablePadID() {
         return new WebDisplays().lastPadId++;
     }
 
-    public static DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, "webdisplays");
+    public static DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(BuiltInRegistries.SOUND_EVENT, "webdisplays");
 
     private static SoundEvent registerSound(String resName) {
-        ResourceLocation resLoc = new ResourceLocation("webdisplays", resName);
+        ResourceLocation resLoc = ResourceLocation.fromNamespaceAndPath("webdisplays", resName);
         SoundEvent ret = SoundEvent.createVariableRangeEvent(resLoc);
 
         SOUNDS.register(resName, () -> ret);
         return ret;
     }
 
-    private static void registerTrigger(Criterion ... criteria) {
-        for(Criterion c: criteria)
-            CriteriaTriggers.register(c);
+    private static void registerTrigger(Criterion... criteria) {
+        for(Criterion c: criteria) {
+            // The register method now needs a ResourceLocation/String ID for the criterion
+            CriteriaTriggers.register(c.getId().toString(), c);
+        }
     }
 
    // public static boolean isOpenComputersAvailable() {

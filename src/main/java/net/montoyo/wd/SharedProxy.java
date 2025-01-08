@@ -15,8 +15,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.server.ServerLifecycleHooks;
 import net.montoyo.wd.core.HasAdvancement;
 import net.montoyo.wd.core.JSServerRequest;
 import net.montoyo.wd.data.GuiData;
@@ -28,6 +26,8 @@ import net.montoyo.wd.utilities.math.Vector3i;
 import net.montoyo.wd.utilities.data.BlockSide;
 import net.montoyo.wd.utilities.data.Rotation;
 import net.montoyo.wd.utilities.serialization.NameUUIDPair;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.joml.Vector3d;
 
 import javax.annotation.Nonnull;
@@ -52,8 +52,8 @@ public class SharedProxy {
         return getServer().getLevel(dim);
     }
 
-    public BlockGetter getWorld(NetworkEvent.Context context) {
-        if (context.getSender() != null) return context.getSender().level();
+    public BlockGetter getWorld(IPayloadContext context) {
+        if (context.player().level() != null) return context.player().level();
         return null;
     }
 
