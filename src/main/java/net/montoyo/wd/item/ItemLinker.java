@@ -26,6 +26,7 @@ import net.montoyo.wd.utilities.math.Vector3i;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Objects;
 
 public class ItemLinker extends Item implements WDItem {
     public ItemLinker(Properties properties) {
@@ -40,7 +41,7 @@ public class ItemLinker extends Item implements WDItem {
         if (context.getLevel().isClientSide())
             return InteractionResult.SUCCESS;
 
-        ItemStack stack = context.getPlayer().getItemInHand(context.getHand());
+        ItemStack stack = Objects.requireNonNull(context.getPlayer()).getItemInHand(context.getHand());
         CompoundTag tag = stack.getTag();
 
         if (tag != null) {

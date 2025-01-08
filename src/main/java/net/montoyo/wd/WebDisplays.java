@@ -6,8 +6,9 @@ package net.montoyo.wd;
 
 import com.google.gson.Gson;
 import net.minecraft.ChatFormatting;
-import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -29,7 +30,6 @@ import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.registries.DeferredRegister;
-import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import net.montoyo.wd.client.ClientProxy;
 import net.montoyo.wd.client.gui.camera.KeyboardCamera;
 import net.montoyo.wd.config.ClientConfig;
@@ -64,11 +64,11 @@ public class WebDisplays {
     public static WebDisplays INSTANCE;
 
     public static SharedProxy PROXY = null;
-    
-    public static final ResourceLocation ADV_PAD_BREAK = new ResourceLocation("webdisplays", "webdisplays/pad_break");
+
+    public static final ResourceLocation ADV_PAD_BREAK = ResourceLocation.fromNamespaceAndPath("webdisplays", "webdisplays/pad_break");
     public static final String BLACKLIST_URL = "mod://webdisplays/blacklisted.html";
     public static final Gson GSON = new Gson();
-    public static final ResourceLocation CAPABILITY = new ResourceLocation("webdisplays", "customdatacap");
+    public static final ResourceLocation CAPABILITY = ResourceLocation.fromNamespaceAndPath("webdisplays", "customdatacap");
 
     //Sounds
     public SoundEvent soundTyping;
@@ -96,7 +96,7 @@ public class WebDisplays {
     public float ytVolume;
     public float avDist100;
     public float avDist0;
-    
+
     // mod detection
     private boolean hasOC;
     private boolean hasCC;
@@ -108,18 +108,18 @@ public class WebDisplays {
         } else {
             PROXY = new SharedProxy();
         }
-    
+
         if (FMLEnvironment.dist.isClient()) {
             // proxies are annoying, so from now on, I'mma be just registering stuff in here
-            ModLoadingContext.get().getActiveContainer().getEventBus().addListener(ClientProxy::onKeybindRegistry);
+            Objects.requireNonNull(ModLoadingContext.get().getActiveContainer().getEventBus()).addListener(ClientProxy::onKeybindRegistry);
             NeoForge.EVENT_BUS.addListener(ClientProxy::onDrawSelection);
             NeoForge.EVENT_BUS.addListener(KeyboardCamera::updateCamera);
             NeoForge.EVENT_BUS.addListener(KeyboardCamera::gameTick);
             ClientConfig.init();
         }
-        
+
         CommonConfig.init();
-        
+
         //Criterions
         criterionPadBreak = new Criterion("pad_break");
         criterionUpgradeScreen = new Criterion("upgrade_screen");
@@ -136,7 +136,7 @@ public class WebDisplays {
         BlockRegistry.init(bus);
         ItemRegistry.init(bus);
         TileRegistry.init(bus);
-        
+
         PROXY.preInit();
 
         NeoForge.EVENT_BUS.register(this);
@@ -157,7 +157,7 @@ public class WebDisplays {
                 t.printStackTrace();
             }
         } */
-        
+
         if (!FMLEnvironment.production) {
             ScreenControlRegistry.init();
         }
@@ -166,7 +166,7 @@ public class WebDisplays {
     @SubscribeEvent
     public static void onAttachPlayerCap(AttachCapabilitiesEvent<Entity> event) {
         if (event.getObject() instanceof Player && !event.getObject().getCapability(WDDCapability.Provider.cap).isPresent()) {
-            event.addCapability(new ResourceLocation("webdisplays", "wddcapability"), new WDDCapability.Provider());
+            event.addCapability(ResourceLocation.fromNamespaceAndPath("webdisplays", "wddcapability"), new WDDCapability.Provider());
         }
     }
 
@@ -373,27 +373,29 @@ public class WebDisplays {
         if(server == null)
             return false;
 
-        Advancement adv = server.getAdvancements().getAdvancemen(rl);
-        return adv != null && ply.getAdvancements().getOrStartProgress(adv).isDone();
+        AdvancementHolder advHolder = server.getAdvancements().get(rl);
+        return advHolder != null && ply.getAdvancements().getOrStartProgress(advHolder).isDone();
     }
 
     public static int getNextAvailablePadID() {
         return new WebDisplays().lastPadId++;
     }
 
-    public static DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(NeoForgeRegistries.SOUND_EVENTS, "webdisplays");
+    public static DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(BuiltInRegistries.SOUND_EVENT, "webdisplays");
 
     private static SoundEvent registerSound(String resName) {
-        ResourceLocation resLoc = new ResourceLocation("webdisplays", resName);
+        ResourceLocation resLoc = ResourceLocation.fromNamespaceAndPath("webdisplays", resName);
         SoundEvent ret = SoundEvent.createVariableRangeEvent(resLoc);
 
         SOUNDS.register(resName, () -> ret);
         return ret;
     }
 
-    private static void registerTrigger(Criterion ... criteria) {
-        for(Criterion c: criteria)
-            CriteriaTriggers.register(c);
+    private static void registerTrigger(Criterion... criteria) {
+        for(Criterion c: criteria) {
+            // The register method now needs a ResourceLocation/String ID for the criterion
+            CriteriaTriggers.register(c.getId().toString(), c);
+        }
     }
 
    // public static boolean isOpenComputersAvailable() {
